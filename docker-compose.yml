@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:18
+    container_name: shoreline_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shoreline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shoreline_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-shoreline_city}
+      # Fija la ruta de datos clásica (PostgreSQL 18 la cambió por defecto).
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/backup:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shoreline} -d ${POSTGRES_DB:-shoreline_city}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      # No cuenta como fallo mientras Postgres inicializa por primera vez.
+      start_period: 45s
+
+  web:
+    build: .
+    container_name: shoreline_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER:-shoreline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shoreline_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-shoreline_city}
+      SECRET_KEY: ${SECRET_KEY:-cambia-esta-clave}
+      FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-admin@shorelinecity.org}
+      FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-Admin1234}
+    ports:
+      - "${WEB_PORT:-8080}:8000"
+
+volumes:
+  pgdata:

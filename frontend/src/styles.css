@@ -1,0 +1,90 @@
+/* ============================================================
+   Shoreline City — Sistema de diseño (blancos, grises, azul)
+   Inter para la interfaz · Sora para marca y cifras grandes
+   ============================================================ */
+:root {
+  --sc-bg: #f5f7fa;
+  --sc-ink: #0f1b2d;
+  --sc-muted: #64748b;
+  --sc-line: #e6eaf0;
+  --sc-blue: #2563eb;
+  --sc-blue-ink: #1e40af;
+  --sc-blue-soft: #eef3ff;
+}
+
+/* --- Tipografía global --- */
+.v-application,
+.v-application .v-card,
+.v-application .v-btn,
+.v-application .v-field__input,
+.v-application .v-list-item-title {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+.brand-font { font-family: "Sora", "Inter", sans-serif; letter-spacing: -0.02em; }
+
+body { background: var(--sc-bg); }
+
+/* --- Tarjetas: planas con hairline, sombra mínima --- */
+.v-application .v-card.sc-card {
+  border: 1px solid var(--sc-line);
+  box-shadow: 0 1px 2px rgba(15, 27, 45, 0.04);
+  background: #fff;
+}
+.sc-card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--sc-ink);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--sc-line);
+}
+
+/* --- Métricas --- */
+.sc-metric-value {
+  font-family: "Sora", "Inter", sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-ink);
+  line-height: 1;
+}
+.sc-metric-label { color: var(--sc-muted); font-size: 0.8rem; }
+
+.sc-icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--sc-blue-soft);
+  color: var(--sc-blue);
+}
+
+/* --- Navegación (rail/drawer) --- */
+.sc-nav .v-list-item {
+  border-radius: 10px;
+  margin: 2px 10px;
+  color: var(--sc-ink);
+  min-height: 44px;
+}
+.sc-nav .v-list-item--active {
+  background: var(--sc-blue-soft);
+  color: var(--sc-blue-ink);
+  font-weight: 600;
+}
+.sc-nav .v-list-item--active .v-icon { color: var(--sc-blue); }
+
+/* --- Encabezados de página --- */
+.sc-page-title { font-weight: 700; color: var(--sc-ink); font-size: 1.35rem; letter-spacing: -0.01em; }
+.sc-page-sub { color: var(--sc-muted); font-size: 0.9rem; }
+
+/* --- Tablas --- */
+.v-application .v-data-table { border-radius: 12px; }
+.v-data-table__th { color: var(--sc-muted) !important; font-weight: 600 !important; }
+
+/* --- Scrollbar sutil --- */
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
