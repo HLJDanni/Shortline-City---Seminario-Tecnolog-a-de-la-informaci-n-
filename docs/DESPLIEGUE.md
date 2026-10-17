@@ -82,3 +82,57 @@ cambios de esquema complejos se recomienda integrar Alembic en el futuro.
 curl -s http://localhost:8080/health          # {"status":"ok"}
 docker compose exec web python -m pytest -q    # opcional
 ```
+
+---
+
+# Despliegue en la nube: Render + Supabase
+
+Alternativa sin servidor propio: **Supabase** aloja PostgreSQL y **Render**
+ejecuta el mismo `Dockerfile` (API + SPA). Render entrega HTTPS, por lo que
+no se necesita Nginx.
+
+## 1. Supabase
+
+1. Crear el proyecto (región cercana a la de Render, p. ej. us-east-1).
+2. En **Connect**, copiar la cadena del **Session pooler** (puerto 5432):
+   `postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres`
+   - No usar la conexión directa `db.[ref].supabase.co`: es IPv6 y Render
+     solo sale por IPv4.
+   - La app adapta sola el prefijo a `postgresql+psycopg://` y agrega
+     `sslmode=require` (`app/core/config.py`).
+
+## 2. Render (Web Service, runtime Docker)
+
+| Variable | Valor |
+|----------|-------|
+| `DATABASE_URL` | Cadena del Session pooler con la contraseña real |
+| `SECRET_KEY` | `openssl rand -hex 32` |
+| `ENVIRONMENT` | `production` |
+| `COOKIE_SECURE` | `true` |
+| `FIRST_ADMIN_EMAIL` / `FIRST_ADMIN_PASSWORD` / `FIRST_ADMIN_NAME` | Admin inicial |
+
+- Health Check Path: `/health`. El puerto lo fija Render con `PORT`.
+- Al arrancar, la app crea las tablas en Supabase y siembra roles y admin.
+
+## 3. Después del primer despliegue
+
+- Ejecutar `scripts/supabase_rls.sql` en Supabase > SQL Editor (bloquea la
+  Data API pública).
+- Datos demo desde un equipo local:
+  `DATABASE_URL="<cadena pooler>" python -m scripts.seed_demo`
+- Respaldos: `DATABASE_URL="<cadena pooler>" ./scripts/backup.sh`
+
+## 4. Seguridad de la sesión (HTTPS + JWT)
+
+| Medida | Implementación |
+|--------|----------------|
+| HTTPS obligatorio | Render entrega TLS; en producción la app redirige HTTP→HTTPS (308) y envía `Strict-Transport-Security` |
+| JWT en cookie | `HttpOnly` (JS no lo lee), `Secure` (solo HTTPS), `SameSite=Strict` (sin envío desde otros sitios) |
+| JWT validado | Firma HS256 fija, expiración, emisor (`iss`) e id único (`jti`); se revoca al cerrar sesión |
+| Fuerza bruta | 5 intentos fallidos por correo o IP → bloqueo de 15 min (HTTP 429) |
+| Enumeración de usuarios | Mismo tiempo de respuesta exista o no el correo |
+| Cabeceras | CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Cache-Control: no-store` en `/api` |
+| Arranque seguro | En `ENVIRONMENT=production` la app no inicia con `SECRET_KEY` débil ni con la contraseña de admin por defecto |
+
+Integraciones externas (RF-065) siguen usando `Authorization: Bearer <token>`
+con el token que devuelve `POST /api/auth/login`.

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
@@ -60,6 +60,42 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ------------------- HTTPS y cabeceras de seguridad (RNF-002) -------------------
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "img-src 'self' data: blob:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+)
+_SIN_CSP = ("/docs", "/redoc", "/openapi.json")  # Swagger carga recursos de un CDN
+
+
+@app.middleware("http")
+async def seguridad_http(request: Request, call_next):
+    # En producción todo el tráfico debe ser HTTPS. Render termina TLS y avisa
+    # con X-Forwarded-Proto (uvicorn --proxy-headers lo refleja en el esquema).
+    if (settings.es_produccion and request.url.scheme == "http"
+            and request.url.path != "/health"):
+        return RedirectResponse(str(request.url.replace(scheme="https")), status_code=308)
+
+    response = await call_next(request)
+    h = response.headers
+    h.setdefault("X-Content-Type-Options", "nosniff")
+    h.setdefault("X-Frame-Options", "DENY")
+    h.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    h.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if not request.url.path.startswith(_SIN_CSP):
+        h.setdefault("Content-Security-Policy", _CSP)
+    if request.url.path.startswith("/api/"):
+        h.setdefault("Cache-Control", "no-store")
+    if settings.es_produccion:
+        h.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
 
 
 @app.exception_handler(CredentialsError)

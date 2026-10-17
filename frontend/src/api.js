@@ -1,20 +1,16 @@
 import axios from 'axios'
 
-// Cliente HTTP central. El token JWT se adjunta automáticamente.
-const api = axios.create({ baseURL: '/api' })
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('sc_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+// Cliente HTTP central. La sesión viaja en una cookie HttpOnly que fija el
+// backend al iniciar sesión: JavaScript nunca ve ni guarda el token.
+const api = axios.create({ baseURL: '/api', withCredentials: true })
 
 api.interceptors.response.use(
   (r) => r,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('sc_token')
-      if (location.pathname !== '/login') location.assign('/login')
+    const url = error.config?.url || ''
+    const esAuth = url.startsWith('/auth/')
+    if (error.response?.status === 401 && !esAuth && location.pathname !== '/login') {
+      location.assign('/login')
     }
     return Promise.reject(error)
   },

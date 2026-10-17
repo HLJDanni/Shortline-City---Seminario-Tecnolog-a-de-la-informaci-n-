@@ -22,22 +22,19 @@ class CredentialsError(HTTPException):
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
 
-def _extraer_token(request: Request) -> str | None:
-    # 1) Cookie (frontend web)
-    token = request.cookies.get(COOKIE_NAME)
-    if token:
-        return token
-    # 2) Header Authorization: Bearer (API / integraciones RF-065)
+def extraer_token(request: Request) -> str | None:
+    # 1) Header Authorization: Bearer (API / integraciones RF-065)
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         return auth[7:]
-    return None
+    # 2) Cookie HttpOnly (frontend web)
+    return request.cookies.get(COOKIE_NAME) or None
 
 
 def get_current_user(
     request: Request, db: Annotated[Session, Depends(get_db)]
 ) -> Usuario:
-    token = _extraer_token(request)
+    token = extraer_token(request)
     if not token:
         raise CredentialsError()
     payload = decodificar_token(token)
