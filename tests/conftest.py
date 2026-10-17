@@ -32,6 +32,10 @@ def db():
 @pytest.fixture()
 def client(db):
     # TestClient sin lifespan: las tablas y el seed los prepara la fixture `db`.
+    from app.core.security import control_intentos, tokens_revocados
+
+    control_intentos.limpiar()
+    tokens_revocados.limpiar()
     return TestClient(app)
 
 

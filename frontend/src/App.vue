@@ -5,11 +5,5 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { useAuth } from '@/stores/auth'
-
-const auth = useAuth()
-onMounted(() => {
-  if (auth.isAuth && !auth.user) auth.fetchMe().catch(() => auth.logout())
-})
+// La sesión se valida en la guarda del router (router.js) contra /api/auth/me.
 </script>

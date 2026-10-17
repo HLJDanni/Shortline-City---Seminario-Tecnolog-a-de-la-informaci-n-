@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
 import api from '@/api'
 
+// Limpia tokens de versiones anteriores que se guardaban en localStorage.
+try { localStorage.removeItem('sc_token') } catch { /* sin almacenamiento */ }
+
 export const useAuth = defineStore('auth', {
   state: () => ({
-    token: localStorage.getItem('sc_token') || null,
     user: null,
   }),
   getters: {
-    isAuth: (s) => !!s.token,
+    isAuth: (s) => !!s.user,
     permisos: (s) => (s.user ? s.user.permisos : []),
   },
   actions: {
@@ -18,19 +20,18 @@ export const useAuth = defineStore('auth', {
       return p.includes(`${modulo}:*`)
     },
     async login(email, password) {
-      const { data } = await api.post('/auth/login', { email, password })
-      this.token = data.access_token
-      localStorage.setItem('sc_token', this.token)
+      // El backend responde con una cookie HttpOnly; no se guarda nada aquí.
+      await api.post('/auth/login', { email, password })
       await this.fetchMe()
     },
     async fetchMe() {
       const { data } = await api.get('/auth/me')
       this.user = data
+      return data
     },
-    logout() {
-      this.token = null
+    async logout() {
+      try { await api.post('/auth/logout') } catch { /* la sesión ya no era válida */ }
       this.user = null
-      localStorage.removeItem('sc_token')
     },
   },
 })

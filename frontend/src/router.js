@@ -24,9 +24,9 @@ const router = createRouter({ history: createWebHistory(), routes })
 router.beforeEach(async (to) => {
   const auth = useAuth()
   if (to.meta.public) return true
-  if (!auth.isAuth) return { path: '/login' }
   if (!auth.user) {
-    try { await auth.fetchMe() } catch { auth.logout(); return { path: '/login' } }
+    // La cookie HttpOnly no es visible desde JS: se pregunta al backend.
+    try { await auth.fetchMe() } catch { return { path: '/login' } }
   }
   return true
 })

@@ -42,7 +42,7 @@ Navegador (PC / tablet / móvil)
 
 - **Separación API / vistas**: la misma lógica de negocio (`app/services`)
   alimenta tanto la API REST como el frontend, evitando duplicación (RNF-008).
-- **Autenticación dual**: JWT en cookie HttpOnly para el navegador y
+- **Autenticación dual**: JWT en cookie HttpOnly + Secure + SameSite=Strict para el navegador (SPA) y
   `Authorization: Bearer` para integraciones/API (RF-065).
 - **RBAC por `modulo:accion`**: dependencia `require_permission()` aplicada
   en cada endpoint (RF-057, RNF-003).

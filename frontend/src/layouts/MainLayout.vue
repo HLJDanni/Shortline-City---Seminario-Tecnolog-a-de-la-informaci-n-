@@ -129,8 +129,8 @@ function toggleNav() {
   else rail.value = !rail.value
 }
 
-function salir() {
-  auth.logout()
+async function salir() {
+  await auth.logout()
   router.push('/login')
 }
 </script>

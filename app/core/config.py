@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     COOKIE_SECURE: bool = False
+    # Protección contra fuerza bruta en el login.
+    LOGIN_MAX_INTENTOS: int = 5
+    LOGIN_BLOQUEO_MINUTOS: int = 15
 
     # Base de datos
     POSTGRES_USER: str = "shoreline"
@@ -56,9 +59,30 @@ class Settings(BaseSettings):
         )
 
 
+    @property
+    def es_produccion(self) -> bool:
+        return self.ENVIRONMENT.lower() in ("production", "produccion", "prod")
+
+    def validar_produccion(self) -> None:
+        """Impide arrancar en producción con secretos débiles o por defecto."""
+        if not self.es_produccion:
+            return
+        errores = []
+        if len(self.SECRET_KEY) < 32 or "change" in self.SECRET_KEY or "cambia" in self.SECRET_KEY:
+            errores.append("SECRET_KEY debe ser aleatoria y de al menos 32 caracteres")
+        if self.FIRST_ADMIN_PASSWORD == "Admin1234" or len(self.FIRST_ADMIN_PASSWORD) < 12:
+            errores.append("FIRST_ADMIN_PASSWORD debe cambiarse (mínimo 12 caracteres)")
+        if errores:
+            raise RuntimeError("Configuración insegura para producción: " + "; ".join(errores))
+        # En producción la cookie de sesión siempre viaja solo por HTTPS.
+        self.COOKIE_SECURE = True
+
+
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    s.validar_produccion()
+    return s
 
 
 settings = get_settings()
