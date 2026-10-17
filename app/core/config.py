@@ -36,9 +36,20 @@ class Settings(BaseSettings):
 
     @property
     def sqlalchemy_url(self) -> str:
-        """URL de conexión. Prioriza DATABASE_URL (útil para pruebas con SQLite)."""
+        """URL de conexión. Prioriza DATABASE_URL (Supabase, Render o SQLite).
+
+        Acepta la cadena tal como la entrega Supabase (``postgresql://...``):
+        se adapta al driver psycopg 3 y, si el host es de Supabase, se exige SSL.
+        """
         if self.DATABASE_URL:
-            return self.DATABASE_URL
+            url = self.DATABASE_URL.strip()
+            for prefijo in ("postgres://", "postgresql://"):
+                if url.startswith(prefijo):
+                    url = "postgresql+psycopg://" + url[len(prefijo):]
+                    break
+            if "supabase." in url and "sslmode=" not in url:
+                url += ("&" if "?" in url else "?") + "sslmode=require"
+            return url
         return (
             f"postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

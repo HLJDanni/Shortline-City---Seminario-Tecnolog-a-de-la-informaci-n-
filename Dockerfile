@@ -34,4 +34,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render (y otros PaaS) indican el puerto en la variable PORT; en local se usa 8000.
+# --proxy-headers: Render termina HTTPS antes del contenedor.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
